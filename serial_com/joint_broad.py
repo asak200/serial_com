@@ -31,6 +31,8 @@ class JointBroad(Node):
         if not '   ' in enc_info.info or len(enc_info.info.split('   ')) != 2:
             return
         l, r = enc_info.info.split('   ')
+        if l or r == '':
+            return
         pl = int(l)*2*pi / self.ENC_COUNT_PER_REV
         pr = int(r)*2*pi / self.ENC_COUNT_PER_REV
         
