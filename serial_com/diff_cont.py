@@ -36,6 +36,8 @@ class DiffContNode(Node):
         if not '   ' in enc_info.info or len(enc_info.info.split('   ')) != 2:
             return
         l, r = enc_info.info.split('   ')
+        if l == '' or r == '':
+            return
         denc_l = int(l) - self.prev_enc_l
         denc_r = int(r) - self.prev_enc_r
         xl = denc_l*2*pi*self.radius / self.ENC_COUNT_PER_REV

@@ -49,8 +49,6 @@ class ComNode(Node):
         if order == 'enc':
             self.pub_enc.publish(msg)
             if '   ' in content:
-                if self.el or self.er == '':
-                    return
                 self.el, self.er = content.split('   ')
         else:
             self.pub.publish(msg)
