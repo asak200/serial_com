@@ -23,7 +23,7 @@ class DiffContNode(Node):
         self.pose_x = 0
         self.pose_y = 0
         self.pose_ang = 0
-        self.ENC_COUNT_PER_REV = 3000
+        self.ENC_COUNT_PER_REV = 20
         self.radius = 0.1
         self.wheel_separation = 0.57
         self.prev_enc_l = 0

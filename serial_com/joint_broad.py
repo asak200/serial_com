@@ -23,7 +23,7 @@ class JointBroad(Node):
             10
         )
         self.joint_state_msg = JointState()
-        self.ENC_COUNT_PER_REV = 3000
+        self.ENC_COUNT_PER_REV = 20
 
         self.get_logger().info("joint state broadcaster initialized")
 
