@@ -34,7 +34,7 @@ class ComNode(Node):
                     msg = SerMsg()
                     msg.head = 'enc'
                     msg.info = '0   0'
-                    self.pub.publish(msg)
+                    self.pub_enc.publish(msg)
         except KeyboardInterrupt:
             print('close serial')
             self.ser.close()
