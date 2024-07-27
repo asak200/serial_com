@@ -30,6 +30,10 @@ class ComNode(Node):
                 if self.ser.in_waiting > 0: # to receive 
                     line = self.ser.readline().decode('utf-8').rstrip()
                     self.analize_msg(line)
+                elif self.el == '0' and self.er == '0':
+                    msg = SerMsg()
+                    msg.head = 'enc'
+                    msg.info = '0   0'
         except KeyboardInterrupt:
             print('close serial')
             self.ser.close()
