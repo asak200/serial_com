@@ -16,8 +16,7 @@ class ComNode(Node):
                 self.ser_port = f'/dev/ttyUSB{i}'
                 self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
             except serial.serialutil.SerialException:
-                self.ser_port = '/dev/ttyUSB10'
-                self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
+                pass
         time.sleep(2.)
         self.ser.reset_input_buffer()
         self.get_logger().info(f"Serial com established to {self.ser_port}")
