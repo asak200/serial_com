@@ -68,7 +68,7 @@ class ComNode(Node):
 
     def send_vel(self, req: CmdVelReq.Request, resp):
         msg = req.speed_request
-        self.get_logger().info(msg)
+        # self.get_logger().info(msg)
         self.ser.write(msg.encode('utf-8'))
         return resp
 
