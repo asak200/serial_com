@@ -3,10 +3,11 @@
 import rclpy
 from rclpy.node import Node
 from pose_int.msg import SerMsg
-from geometry_msgs.msg import TransformStamped
+from pose_int.srv import CmdVelReq
+from geometry_msgs.msg import TransformStamped, Twist
 from tf2_msgs.msg import TFMessage
-from transforms3d.euler import euler2quat
 
+from transforms3d.euler import euler2quat
 from math import pi, cos, sin
 
 class DiffContNode(Node):
@@ -18,6 +19,13 @@ class DiffContNode(Node):
             self.get_enc,
             10
         )
+        self.joy_listener = self.create_subscription(
+            Twist,
+            'cmd_vel_joy',
+            self.apply_vel,
+            10
+        )
+        self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
         self.tf_pub
         self.pose_x = 0
@@ -29,6 +37,9 @@ class DiffContNode(Node):
         self.prev_enc_l = 0
         self.prev_enc_r = 0
 
+        self.req = CmdVelReq.Request()
+        while not self.vel_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Service not available, waiting...')
         self.get_logger().info("Diff drive controller initialized")
 
 
@@ -72,7 +83,35 @@ class DiffContNode(Node):
         msg = TFMessage(transforms=[t])
         self.tf_pub.publish(msg)
         
+    def apply_vel(self, msg: Twist):
+        vx = msg.linear.x
+        az = msg.angular.z
+        pwm_l = 150
+        pwm_r = 150
+        self.req.speed_request = f"vs: {pwm_l} {pwm_r}\n"
+        if vx and az:
+            pass
+        elif vx:
+            if vx < 0:
+                pwm_l = -150
+                pwm_r = -150
+                self.req.speed_request = f"vs:{pwm_l}{pwm_r}\n"
+        elif az:
+            if az > 0:
+                pwm_l = -150
+                self.req.speed_request = f"vs:{pwm_l} {pwm_r}\n"
+            else:
+                pwm_r = -150
+                self.req.speed_request = f"vs: {pwm_l}{pwm_r}\n"
+        else:
+            pwm_l = 0
+            pwm_r = 0
+            self.req.speed_request = "vs: 000 000\n"
+        
+        # self.get_logger().info("sendin")
+        self.vel_cli.call_async(self.req)
 
+        
 
 def main(args=None):
     rclpy.init(args=args)

@@ -3,8 +3,9 @@
 import rclpy
 from rclpy.node import Node
 from pose_int.msg import SerMsg
+from pose_int.srv import CmdVelReq
 
-import serial, time
+import serial, time, threading
 
 class ComNode(Node):
 
@@ -18,10 +19,13 @@ class ComNode(Node):
 
         self.pub = self.create_publisher(SerMsg, 'serial_read', 10)
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
+        self.vel_srv = self.create_service(CmdVelReq, 'send_vel_srv', self.send_vel)
         self.el = '0'
         self.er = '0'
 
-        self.listen()
+        self.serial_thread = threading.Thread(target=self.listen)
+        self.serial_thread.daemon = True
+        self.serial_thread.start()
 
     def listen(self):
         try:
@@ -53,6 +57,11 @@ class ComNode(Node):
         else:
             self.pub.publish(msg)
 
+    def send_vel(self, req: CmdVelReq.Request, resp):
+        msg = req.speed_request
+        self.get_logger().info(msg)
+        self.ser.write(msg.encode('utf-8'))
+        return resp
 
 def main(args=None):
     rclpy.init(args=args)
