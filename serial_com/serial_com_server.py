@@ -11,12 +11,17 @@ class ComNode(Node):
 
     def __init__(self):
         super().__init__('serial_com_node')
-        for i in range(10):
-            try:
-                self.ser_port = f'/dev/ttyUSB{i}'
-                self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
-            except serial.serialutil.SerialException:
-                pass
+
+        self.ser_port = f'/dev/ttyUSB0'
+        self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
+        # for i in range(10):
+        #     try:
+        #         self.ser_port = f'/dev/ttyUSB{i}'
+        #         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
+        #         break
+        #     except serial.serialutil.SerialException:
+        #         pass
+
         time.sleep(2.)
         self.ser.reset_input_buffer()
         self.get_logger().info(f"Serial com established to {self.ser_port}")
