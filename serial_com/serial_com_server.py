@@ -41,8 +41,7 @@ class ComNode(Node):
         msg = SerMsg()
         msg.head = 'enc'
         msg.info = '0   0'
-        for i in range(1000):
-            msg.c = i
+        for _ in range(2000):
             self.pub_enc.publish(msg)
 
     def listen(self):
@@ -56,7 +55,6 @@ class ComNode(Node):
                 #     msg = SerMsg()
                 #     msg.head = 'enc'
                 #     msg.info = '0   0'
-                #     msg.c = self.i
                 #     self.i += 1
                 #     self.pub_enc.publish(msg)
                     
