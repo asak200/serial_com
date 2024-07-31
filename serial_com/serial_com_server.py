@@ -31,6 +31,7 @@ class ComNode(Node):
         self.vel_srv = self.create_service(CmdVelReq, 'send_vel_srv', self.send_vel)
         self.el = '0'
         self.er = '0'
+        self.i = 0
 
         self.serial_thread = threading.Thread(target=self.listen)
         self.serial_thread.daemon = True
