@@ -37,6 +37,14 @@ class ComNode(Node):
         self.serial_thread.daemon = True
         self.serial_thread.start()
 
+        # iniitialize
+        msg = SerMsg()
+        msg.head = 'enc'
+        msg.info = '0   0'
+        for i in range(2000):
+            msg.c = i
+            self.pub_enc.publish(msg)
+
     def listen(self):
         try:
             while True:
@@ -44,13 +52,13 @@ class ComNode(Node):
                 if self.ser.in_waiting > 0: # to receive 
                     line = self.ser.readline().decode('utf-8').rstrip()
                     self.analize_msg(line)
-                elif self.el == '0' and self.er == '0':
-                    msg = SerMsg()
-                    msg.head = 'enc'
-                    msg.info = '0   0'
-                    msg.c = self.i
-                    self.i += 1
-                    self.pub_enc.publish(msg)
+                # elif self.el == '0' and self.er == '0':
+                #     msg = SerMsg()
+                #     msg.head = 'enc'
+                #     msg.info = '0   0'
+                #     msg.c = self.i
+                #     self.i += 1
+                #     self.pub_enc.publish(msg)
                     
         except KeyboardInterrupt:
             print('close serial')
