@@ -41,7 +41,7 @@ class ComNode(Node):
         msg = SerMsg()
         msg.head = 'enc'
         msg.info = '0   0'
-        for i in range(500):
+        for i in range(2000):
             msg.c = i
             self.pub_enc.publish(msg)
 
