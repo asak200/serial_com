@@ -18,7 +18,8 @@ class DiffContNode(Node):
         self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_vel, 10)
         self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
-        self.publish_vel = self.create_publisher(Float64, 'feedback_speed', 10)
+        self.publish_vel = self.create_publisher(Float64, 'speed_feedback', 10)
+        self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
         self.my_timer = self.create_timer(0.02, self.update_pose_vel)
 
@@ -32,6 +33,8 @@ class DiffContNode(Node):
         self.prev_enc_l = 0
         self.prev_enc_r = 0
         self.prev_now = self.get_clock().now().nanoseconds
+        self.start_a = 0
+        self.prev_vx = 0
 
         # small wheel
         self.ENC_COUNT_PER_REV = 22
@@ -43,8 +46,8 @@ class DiffContNode(Node):
         # self.wheel_separation = 0.55
 
         self.req = CmdVelReq.Request()
-        while not self.vel_cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Service not available, waiting...')
+        # while not self.vel_cli.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().info('Service not available, waiting...')
         self.get_logger().info("Diff drive controller initialized")
 
 
@@ -111,6 +114,13 @@ class DiffContNode(Node):
         vr = vx + az*self.wheel_separation/2
         pwm_l = 150
         pwm_r = 150
+
+        if self.prev_vx == 0 and vx > 0:
+            self.start_a = self.get_clock().now().nanoseconds
+        elif self.prev_vx > 0 and vx == 0:
+            now = self.get_clock().now().nanoseconds
+            self.get_logger().info(f"{(self.start_a - now)*-10**-9}")
+        self.prev_vx = vx
         self.req.speed_request = f"vs: {pwm_l} {pwm_r}\n"
         if vx and az:
             pass
@@ -132,7 +142,7 @@ class DiffContNode(Node):
             self.req.speed_request = "vs: 000 000\n"
         
         # self.get_logger().info("sendin")
-        self.vel_cli.call_async(self.req)
+        # self.vel_cli.call_async(self.req)
 
         
 
