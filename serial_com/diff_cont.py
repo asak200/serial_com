@@ -81,14 +81,16 @@ class DiffContNode(Node):
         self.xr += dxr
         now = self.get_clock().now().nanoseconds
         dt = now - self.prev_now
+        self.prev_now = now
 
         self.real_vl = dxl/dt * 10**9
         self.real_vr = dxr/dt * 10**9
 
-        msg = Float64()
-        msg.data = self.real_vl/2 + self.real_vr/2
-        if abs(msg.data) >= 0.0001:
-            self.publish_vel.publish(msg)
+        # msg = Float64()
+        # self.cv = self.real_vl/2 + self.real_vr/2
+        # msg.data = self.cv
+        # if abs(self.cv) >= 0.01:
+        #     self.publish_vel.publish(msg)
         
         self.pulish_to_tf()
 
@@ -97,7 +99,7 @@ class DiffContNode(Node):
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = 'odom'
         t.child_frame_id = 'base_link'
-        t.transform.translation.x = self.pose_x 
+        t.transform.translation.x = self.pose_x
         t.transform.translation.y = self.pose_y
         t.transform.translation.z = 0.0
         quat = euler2quat(0, 0, self.pose_ang)
@@ -121,7 +123,10 @@ class DiffContNode(Node):
             self.start_a = self.get_clock().now().nanoseconds
         elif self.prev_vx > 0 and vx == 0:
             now = self.get_clock().now().nanoseconds
-            self.get_logger().info(f"{(self.start_a - now)*-10**-9}")
+            t = (self.start_a - now)*-10**-9
+            dDDD = (self.xl+self.xr)/2
+            self.get_logger().info(f"time: {t}, {dDDD}")
+            self.get_logger().info(f"vel: {dDDD/t}")
         self.prev_vx = vx
         self.req.speed_request = f"vs: {pwm_l} {pwm_r}\n"
         if vx and az:
