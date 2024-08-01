@@ -13,29 +13,32 @@ from math import pi, cos, sin
 class DiffContNode(Node):
     def __init__(self):
         super().__init__('diff_cont_asak')
-        self.enc_listener = self.create_subscription(
-            SerMsg,
-            'enc_val',
-            self.get_enc,
-            10
-        )
-        self.joy_listener = self.create_subscription(
-            Twist,
-            'cmd_vel_joy',
-            self.apply_vel,
-            10
-        )
+        self.enc_listener = self.create_subscription(SerMsg, 'enc_val', self.get_enc, 10)
+        self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_vel, 10)
         self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
-        self.tf_pub
+
+        self.my_timer = self.create_timer(0.02, self.update_pose_vel)
+
+        self.xl = 0
+        self.xr = 0
+        self.l = 0
+        self.r = 0
         self.pose_x = 0
         self.pose_y = 0
         self.pose_ang = 0
+        self.prev_enc_l = 0
+        self.prev_enc_r = 0
+        self.prev_now = self.get_clock().now().nanoseconds
+
+        # small wheel
         self.ENC_COUNT_PER_REV = 20
         self.radius = 0.035
         self.wheel_separation = 0.14
-        self.prev_enc_l = 0
-        self.prev_enc_r = 0
+        # real wheel
+        # self.ENC_COUNT_PER_REV = 600
+        # self.radius = 0.1
+        # self.wheel_separation = 0.55
 
         self.req = CmdVelReq.Request()
         while not self.vel_cli.wait_for_service(timeout_sec=1.0):
@@ -49,23 +52,36 @@ class DiffContNode(Node):
         l, r = enc_info.info.split('   ')
         if l == '' or r == '':
             return
-        denc_l = int(l) - self.prev_enc_l
-        denc_r = int(r) - self.prev_enc_r
-        xl = denc_l*2*pi*self.radius / self.ENC_COUNT_PER_REV
-        xr = denc_r*2*pi*self.radius / self.ENC_COUNT_PER_REV
-        self.prev_enc_l = int(l)
-        self.prev_enc_r = int(r)
+        self.l = l
+        self.r = r
         
-        d = (xr+xl)/2
-        ang = (xr-xl)/self.wheel_separation
+        # print(f"x: {self.pose_x}\ny: {self.pose_y}\nang: {self.pose_ang}")
+
+    def update_pose_vel(self):
+        denc_l = int(self.l) - self.prev_enc_l
+        denc_r = int(self.r) - self.prev_enc_r
+        dxl = denc_l*2*pi*self.radius / self.ENC_COUNT_PER_REV
+        dxr = denc_r*2*pi*self.radius / self.ENC_COUNT_PER_REV
+        self.prev_enc_l = int(self.l)
+        self.prev_enc_r = int(self.r)
+
+        d = (dxr+dxl)/2
+        ang = (dxr-dxl)/self.wheel_separation
 
         self.pose_x += d * cos(self.pose_ang + ang/2)
         self.pose_y += d * sin(self.pose_ang + ang/2)
         self.pose_ang += ang
 
+        self.xl += dxl
+        self.xr += dxr
+        now = self.get_clock().now().nanoseconds
+        dt = now - self.prev_now
+
+        self.real_vl = dxl/dt * 10**9
+        self.real_vr = dxr/dt * 10**9
+
         self.pulish_to_tf()
-        # print(f"x: {self.pose_x}\ny: {self.pose_y}\nang: {self.pose_ang}")
-        
+
     def pulish_to_tf(self):
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
@@ -86,6 +102,8 @@ class DiffContNode(Node):
     def apply_vel(self, msg: Twist):
         vx = msg.linear.x
         az = msg.angular.z
+        vl = vx - az*self.wheel_separation/2
+        vr = vx + az*self.wheel_separation/2
         pwm_l = 150
         pwm_r = 150
         self.req.speed_request = f"vs: {pwm_l} {pwm_r}\n"
