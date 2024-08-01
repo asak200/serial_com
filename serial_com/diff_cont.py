@@ -141,7 +141,7 @@ class DiffContNode(Node):
             pwm_r = 0
             self.req.speed_request = "vs: 000 000\n"
         
-        self.get_logger().info("sendin")
+        # self.get_logger().info("sendin")
         self.vel_cli.call_async(self.req)
 
         
