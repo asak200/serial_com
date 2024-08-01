@@ -6,6 +6,7 @@ from pose_int.msg import SerMsg
 from pose_int.srv import CmdVelReq
 from geometry_msgs.msg import TransformStamped, Twist
 from tf2_msgs.msg import TFMessage
+from example_interfaces.msg import Float64
 
 from transforms3d.euler import euler2quat
 from math import pi, cos, sin
@@ -17,6 +18,7 @@ class DiffContNode(Node):
         self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_vel, 10)
         self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
+        self.publish_vel = self.create_publisher(Float64, 'feedback_speed', 10)
 
         self.my_timer = self.create_timer(0.02, self.update_pose_vel)
 
@@ -32,7 +34,7 @@ class DiffContNode(Node):
         self.prev_now = self.get_clock().now().nanoseconds
 
         # small wheel
-        self.ENC_COUNT_PER_REV = 20
+        self.ENC_COUNT_PER_REV = 22
         self.radius = 0.035
         self.wheel_separation = 0.14
         # real wheel
@@ -80,6 +82,9 @@ class DiffContNode(Node):
         self.real_vl = dxl/dt * 10**9
         self.real_vr = dxr/dt * 10**9
 
+        msg = Float64()
+        msg.data = self.real_vl/2 + self.real_vr/2
+        self.publish_vel(msg)
         self.pulish_to_tf()
 
     def pulish_to_tf(self):
