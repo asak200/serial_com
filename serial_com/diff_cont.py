@@ -87,7 +87,7 @@ class DiffContNode(Node):
 
         msg = Float64()
         msg.data = self.real_vl/2 + self.real_vr/2
-        if abs(msg.data) >= 0.1:
+        if abs(msg.data) >= 0.0001:
             self.publish_vel.publish(msg)
         
         self.pulish_to_tf()
