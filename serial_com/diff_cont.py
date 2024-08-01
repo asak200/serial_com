@@ -84,7 +84,7 @@ class DiffContNode(Node):
 
         msg = Float64()
         msg.data = self.real_vl/2 + self.real_vr/2
-        self.publish_vel(msg)
+        self.publish_vel.publish(msg)
         self.pulish_to_tf()
 
     def pulish_to_tf(self):
