@@ -46,8 +46,8 @@ class DiffContNode(Node):
         # self.wheel_separation = 0.55
 
         self.req = CmdVelReq.Request()
-        # while not self.vel_cli.wait_for_service(timeout_sec=1.0):
-        #     self.get_logger().info('Service not available, waiting...')
+        while not self.vel_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Service not available, waiting...')
         self.get_logger().info("Diff drive controller initialized")
 
 
@@ -142,7 +142,7 @@ class DiffContNode(Node):
             self.req.speed_request = "vs: 000 000\n"
         
         # self.get_logger().info("sendin")
-        # self.vel_cli.call_async(self.req)
+        self.vel_cli.call_async(self.req)
 
         
 
