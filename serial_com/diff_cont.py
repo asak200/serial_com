@@ -52,7 +52,7 @@ class DiffContNode(Node):
         self.publish_vel = self.create_publisher(String, 'speed_feedback', 10)
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
-        self.my_timer = self.create_timer(0.02, self.update_pose_vel)
+        # self.my_timer = self.create_timer(0.02, self.update_pose_vel)
         self.pid_left = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
         self.pid_right = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
 
@@ -81,7 +81,7 @@ class DiffContNode(Node):
         # self.radius = 0.035
         # self.wheel_separation = 0.14
         # real wheel
-        self.ENC_COUNT_PER_REV = 600
+        self.ENC_COUNT_PER_REV = 2400
         self.radius = 0.1
         self.wheel_separation = 0.55
 
@@ -104,6 +104,7 @@ class DiffContNode(Node):
             return
         self.l = int(l)
         self.r = int(r)
+        self.update_pose_vel()
         
         # self.get_logger().info(f"{self.l}, {self.r}")
         
@@ -223,29 +224,27 @@ class DiffContNode(Node):
         #     self.get_logger().info(f"time: {t}, {dDDD}")
         #     self.get_logger().info(f"vel: {dDDD/t}")
         self.prev_vx = vx
-        self.req.speed_request = f"vs: {pwm_l} {pwm_r}\n"
-        if vx and az:
-            pass
-        elif vx:
+        cmd = f"vs: {pwm_l} {pwm_r}"
+        if vx == 0. and az == 0.:
+            pwm_l = 0
+            pwm_r = 0
+            cmd = "vs: 000 000"
+        elif vx < 0:
             if vx < 0:
                 pwm_l *= -1
                 pwm_r *= -1
-                self.req.speed_request = f"vs:{pwm_l}{pwm_r}\n"
-        elif az:
-            if az > 0:
-                pwm_l = -150
-                pwm_r = 150
-                self.req.speed_request = f"vs:{pwm_l} {pwm_r}\n"
-            else:
-                pwm_l = 150
-                pwm_r = -150
-                self.req.speed_request = f"vs: {pwm_l}{pwm_r}\n"
-        else:
-            pwm_l = 0
-            pwm_r = 0
-            self.req.speed_request = "vs: 000 000\n"
+                cmd = f"vs:{pwm_l}{pwm_r}"
+        elif az > 0 and vx == 0:
+            pwm_l = -150
+            pwm_r = 150
+            cmd = f"vs:{pwm_l} {pwm_r}"
+        elif az < 0 and vx == 0:
+            pwm_l = 150
+            pwm_r = -150
+            cmd = f"vs: {pwm_l}{pwm_r}"
         
-        # self.get_logger().info("sendin")
+        self.req.speed_request = cmd + '\n'
+        self.get_logger().info(f"sendin {vx}, {az}")
         self.vel_cli.call_async(self.req)
 
 def main(args=None):
