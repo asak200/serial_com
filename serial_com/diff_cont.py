@@ -194,7 +194,7 @@ class DiffContNode(Node):
             else:
                 cmd += ' 000'
 
-            self.req.speed_request = cmd
+            self.req.speed_request = cmd + '\n'
             self.get_logger().info(f"{cmd}")
             self.vel_cli.call_async(self.req)
 
