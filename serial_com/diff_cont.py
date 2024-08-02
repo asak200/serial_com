@@ -78,8 +78,8 @@ class DiffContNode(Node):
         # self.wheel_separation = 0.55
 
         self.req = CmdVelReq.Request()
-        # while not self.vel_cli.wait_for_service(timeout_sec=1.0):
-        #     self.get_logger().info('Service not available, waiting...')
+        while not self.vel_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Service not available, waiting...')
         self.get_logger().info("Diff drive controller initialized")
 
     def joy_callback(self, msg:Joy):
@@ -175,8 +175,8 @@ class DiffContNode(Node):
         #     pwm_l = 0
         #     pwm_r = 0
 
-        pwm_l = self.pid_left.compute(vl, self.real_vl)
-        pwm_r = self.pid_right.compute(vr, self.real_vr)
+        pwm_l = self.pid_left.compute(vl, self.real_vl, 130)
+        pwm_r = self.pid_right.compute(vr, self.real_vr, 130)
 
         if self.joyB or self.joyA:
             cmd = "vs:"
