@@ -9,6 +9,7 @@ from tf2_msgs.msg import TFMessage
 from example_interfaces.msg import Float64, String
 from sensor_msgs.msg import Joy
 
+import time
 from transforms3d.euler import euler2quat
 from math import pi, cos, sin
 
@@ -22,29 +23,29 @@ class PIDController:
         self.previous_error = 0
         self.integral = 0
 
-    def compute(self, setpoint, measured_value, min_output, pr):
+    def compute(self, setpoint, measured_value, min_output):
         self.min_output = min_output
         error = setpoint - measured_value
         self.integral += error
         derivative = error - self.previous_error
 
-        output = self.kp * error + self.ki * self.integral + self.kd * derivative
+        output1 = self.kp * error + self.ki * self.integral + self.kd * derivative
+        output = output1*1
         self.previous_error = error
 
-        if output > self.max_output:
+        if output1 > self.max_output:
             output = self.max_output
-        elif output < self.min_output:
+        elif output1 < self.min_output:
             output = self.min_output
 
-        if pr:
-            print(f"pwm_l: {output}")
-        return output
+        return int(output), int(output1)
 
 class DiffContNode(Node):
     def __init__(self):
         super().__init__('diff_cont_asak')
         self.enc_listener = self.create_subscription(SerMsg, 'enc_val', self.get_enc, 10)
-        self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_controlled_vel, 10)
+        self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_constant_vel, 10)
+        # self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_controlled_vel, 10)
         self.joy_but = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
         self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
@@ -52,11 +53,13 @@ class DiffContNode(Node):
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
         self.my_timer = self.create_timer(0.02, self.update_pose_vel)
-        self.pid_left = PIDController(kp=1.0, ki=0.1, kd=0.01, max_output=255, min_output=130)
-        self.pid_right = PIDController(kp=1.0, ki=0.1, kd=0.01, max_output=255, min_output=130)
+        self.pid_left = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
+        self.pid_right = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
 
         self.xl = 0
         self.xr = 0
+        self.dxl = 0
+        self.dxr = 0
         self.l = 0
         self.r = 0
         self.pose_x = 0
@@ -64,9 +67,12 @@ class DiffContNode(Node):
         self.pose_ang = 0
         self.prev_enc_l = 0
         self.prev_enc_r = 0
-        self.prev_now = self.get_clock().now().nanoseconds
+        self.prev_now = time.time()
+        self.v_m = String()
         self.start_a = 0
         self.prev_vx = 0
+        self.real_vl = 0
+        self.real_vr = 0
         self.joyA = 0
         self.joyB = 0
 
@@ -78,6 +84,8 @@ class DiffContNode(Node):
         # self.ENC_COUNT_PER_REV = 600
         # self.radius = 0.1
         # self.wheel_separation = 0.55
+
+        self.distance_per_count = 2*pi*self.radius / self.ENC_COUNT_PER_REV
 
         self.req = CmdVelReq.Request()
         while not self.vel_cli.wait_for_service(timeout_sec=1.0):
@@ -94,41 +102,42 @@ class DiffContNode(Node):
         l, r = enc_info.info.split('   ')
         if l == '' or r == '':
             return
-        self.l = l
-        self.r = r
+        self.l = int(l)
+        self.r = int(r)
+        
         # self.get_logger().info(f"{self.l}, {self.r}")
         
         # print(f"x: {self.pose_x}\ny: {self.pose_y}\nang: {self.pose_ang}")
 
     def update_pose_vel(self):
-        denc_l = int(self.l) - self.prev_enc_l
-        denc_r = int(self.r) - self.prev_enc_r
-        dxl = denc_l*2*pi*self.radius / self.ENC_COUNT_PER_REV
-        dxr = denc_r*2*pi*self.radius / self.ENC_COUNT_PER_REV
-        self.prev_enc_l = int(self.l)
-        self.prev_enc_r = int(self.r)
+        denc_l = self.l - self.prev_enc_l
+        denc_r = self.r - self.prev_enc_r
+        self.dxl = denc_l * self.distance_per_count
+        self.dxr = denc_r * self.distance_per_count
+        self.prev_enc_l = self.l
+        self.prev_enc_r = self.r
 
-        d = (dxr+dxl)/2
-        ang = (dxr-dxl)/self.wheel_separation
+        now = time.time()
+        dt = now - self.prev_now
+        self.prev_now = now
+        
+        self.real_vl = self.dxl/dt
+        self.real_vr = self.dxr/dt
+
+        d = (self.dxr+self.dxl)/2
+        ang = (self.dxr-self.dxl)/self.wheel_separation
 
         self.pose_x += d * cos(self.pose_ang + ang/2)
         self.pose_y += d * sin(self.pose_ang + ang/2)
         self.pose_ang += ang
 
-        self.xl += dxl
-        self.xr += dxr
-        now = self.get_clock().now().nanoseconds
-        dt = now - self.prev_now
-        self.prev_now = now
-
-        self.real_vl = dxl/dt * 10**9
-        self.real_vr = dxr/dt * 10**9
-
-        msg = String()
-        msg.data = f'{self.real_vl} {self.real_vr}'
-        self.publish_vel.publish(msg)
+        self.xl += self.dxl
+        self.xr += self.dxr
         
-        self.pulish_to_tf()
+        self.v_m.data = f'{self.real_vl} {self.real_vr}'
+        self.publish_vel.publish(self.v_m)
+        
+        self.pulish_to_tf()        
 
     def pulish_to_tf(self):
         t = TransformStamped()
@@ -175,8 +184,9 @@ class DiffContNode(Node):
         #     pwm_l = 0
         #     pwm_r = 0
 
-        pwm_l = self.pid_left.compute(vl, self.real_vl, 130)
-        pwm_r = self.pid_right.compute(vr, self.real_vr, 130)
+        pwm_l, p2 = self.pid_left.compute(vl, self.real_vl, 130)
+        pwm_r, p3 = self.pid_right.compute(vr, self.real_vr, 130)
+        self.get_logger().info(f"pwms: {p2} {p3}")
 
         if self.joyB or self.joyA:
             cmd = "vs:"
