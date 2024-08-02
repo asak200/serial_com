@@ -77,13 +77,13 @@ class DiffContNode(Node):
         self.joyB = 0
 
         # small wheel
-        self.ENC_COUNT_PER_REV = 22
-        self.radius = 0.035
-        self.wheel_separation = 0.14
+        # self.ENC_COUNT_PER_REV = 22
+        # self.radius = 0.035
+        # self.wheel_separation = 0.14
         # real wheel
-        # self.ENC_COUNT_PER_REV = 600
-        # self.radius = 0.1
-        # self.wheel_separation = 0.55
+        self.ENC_COUNT_PER_REV = 600
+        self.radius = 0.1
+        self.wheel_separation = 0.55
 
         self.distance_per_count = 2*pi*self.radius / self.ENC_COUNT_PER_REV
 
@@ -211,8 +211,8 @@ class DiffContNode(Node):
     def apply_constant_vel(self, msg: Twist):
         vx = msg.linear.x
         az = msg.angular.z
-        pwm_l = 150
-        pwm_r = 150
+        pwm_l = 200
+        pwm_r = 200
 
         # if self.prev_vx == 0 and vx > 0:
         #     self.start_a = self.get_clock().now().nanoseconds
@@ -228,14 +228,16 @@ class DiffContNode(Node):
             pass
         elif vx:
             if vx < 0:
-                pwm_l = -150
-                pwm_r = -150
+                pwm_l *= -1
+                pwm_r *= -1
                 self.req.speed_request = f"vs:{pwm_l}{pwm_r}\n"
         elif az:
             if az > 0:
                 pwm_l = -150
+                pwm_r = 150
                 self.req.speed_request = f"vs:{pwm_l} {pwm_r}\n"
             else:
+                pwm_l = 150
                 pwm_r = -150
                 self.req.speed_request = f"vs: {pwm_l}{pwm_r}\n"
         else:
