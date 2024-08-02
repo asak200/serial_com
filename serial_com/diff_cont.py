@@ -6,7 +6,7 @@ from pose_int.msg import SerMsg
 from pose_int.srv import CmdVelReq
 from geometry_msgs.msg import TransformStamped, Twist
 from tf2_msgs.msg import TFMessage
-from example_interfaces.msg import Float64
+from example_interfaces.msg import Float64, String
 from sensor_msgs.msg import Joy
 
 from transforms3d.euler import euler2quat
@@ -22,7 +22,7 @@ class PIDController:
         self.previous_error = 0
         self.integral = 0
 
-    def compute(self, setpoint, measured_value, min_output):
+    def compute(self, setpoint, measured_value, min_output, pr):
         self.min_output = min_output
         error = setpoint - measured_value
         self.integral += error
@@ -36,6 +36,8 @@ class PIDController:
         elif output < self.min_output:
             output = self.min_output
 
+        if pr:
+            print(f"pwm_l: {output}")
         return output
 
 class DiffContNode(Node):
@@ -46,7 +48,7 @@ class DiffContNode(Node):
         self.joy_but = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
         self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
-        self.publish_vel = self.create_publisher(Float64, 'speed_feedback', 10)
+        self.publish_vel = self.create_publisher(String, 'speed_feedback', 10)
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
         self.my_timer = self.create_timer(0.02, self.update_pose_vel)
@@ -122,11 +124,9 @@ class DiffContNode(Node):
         self.real_vl = dxl/dt * 10**9
         self.real_vr = dxr/dt * 10**9
 
-        # msg = Float64()
-        # self.cv = self.real_vl/2 + self.real_vr/2
-        # msg.data = self.cv
-        # if abs(self.cv) >= 0.01:
-        #     self.publish_vel.publish(msg)
+        msg = String()
+        msg.data = f'{self.real_vl} {self.real_vr}'
+        self.publish_vel.publish(msg)
         
         self.pulish_to_tf()
 
@@ -195,7 +195,7 @@ class DiffContNode(Node):
                 cmd += ' 000'
 
             self.req.speed_request = cmd + '\n'
-            self.get_logger().info(f"{cmd}")
+            # self.get_logger().info(f"{cmd}")
             self.vel_cli.call_async(self.req)
 
     def apply_constant_vel(self, msg: Twist):

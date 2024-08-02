@@ -80,7 +80,7 @@ class ComNode(Node):
         msg = req.speed_request
         # self.get_logger().info(msg)
         self.ser.write(msg.encode('utf-8'))
-        # self.get_logger().info(f"sending: {msg[3:]}")
+        self.get_logger().info(f"sending: {msg[3:-1]}")
         return resp
 
 def main(args=None):
