@@ -53,7 +53,7 @@ class DiffContNode(Node):
         self.publish_vel = self.create_publisher(String, 'speed_feedback', 10)
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
-        self.my_timer = self.create_timer(0.01, self.update_pose_vel)
+        # self.my_timer = self.create_timer(0.01, self.update_pose_vel)
         self.pid_left = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
         self.pid_right = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
 
@@ -82,7 +82,7 @@ class DiffContNode(Node):
         # self.radius = 0.035
         # self.wheel_separation = 0.14
         # real wheel
-        self.ENC_COUNT_PER_REV = 2400
+        self.ENC_COUNT_PER_REV = 2500
         self.radius = 0.1
         self.wheel_separation = 0.55
 
@@ -103,12 +103,13 @@ class DiffContNode(Node):
         l, r = enc_info.info.split('   ')
         if l == '' or r == '':
             return
-        self.l = int(l)
-        self.r = int(r)
+        self.r = int(l)
+        self.l = int(r)
         
         # self.get_logger().info(f"{self.l}, {self.r}")
         
         # print(f"x: {self.pose_x}\ny: {self.pose_y}\nang: {self.pose_ang}")
+        self.update_pose_vel()
 
     def update_pose_vel(self):
         denc_l = self.l - self.prev_enc_l
@@ -118,12 +119,15 @@ class DiffContNode(Node):
         self.prev_enc_l = self.l
         self.prev_enc_r = self.r
 
-        now = time.time()
-        dt = now - self.prev_now
-        self.prev_now = now
-        
-        self.real_vl = self.dxl/dt
-        self.real_vr = self.dxr/dt
+        # now = time.time()
+        # dt = now - self.prev_now
+        # self.prev_now = now
+        # self.real_vl = self.dxl/dt
+        # self.real_vr = self.dxr/dt
+        # self.xl += self.dxl
+        # self.xr += self.dxr
+        # self.v_m.data = f'{self.real_vl} {self.real_vr}'
+        # self.publish_vel.publish(self.v_m)
 
         d = (self.dxr+self.dxl)/2
         ang = (self.dxr-self.dxl)/self.wheel_separation
@@ -131,12 +135,6 @@ class DiffContNode(Node):
         self.pose_x += d * cos(self.pose_ang + ang/2)
         self.pose_y += d * sin(self.pose_ang + ang/2)
         self.pose_ang += ang
-
-        self.xl += self.dxl
-        self.xr += self.dxr
-        
-        self.v_m.data = f'{self.real_vl} {self.real_vr}'
-        self.publish_vel.publish(self.v_m)
         
         self.pulish_to_tf()        
 

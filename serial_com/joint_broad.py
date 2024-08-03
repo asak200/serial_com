@@ -7,8 +7,9 @@ from std_msgs.msg import Header
 from pose_int.msg import SerMsg
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
-
 from math import pi
+
+
 
 class JointBroad(Node):
     def __init__(self):
@@ -27,8 +28,10 @@ class JointBroad(Node):
         )
         self.my_timer = self.create_timer(0.01, self.publish_jt)
 
+        self.l = 0
+        self.r = 0
         self.joint_state_msg = JointState()
-        self.ENC_COUNT_PER_REV = 2400
+        self.ENC_COUNT_PER_REV = 2500
         self.con = 2*pi / self.ENC_COUNT_PER_REV
 
         self.get_logger().info("joint state broadcaster initialized")
@@ -39,8 +42,8 @@ class JointBroad(Node):
         l, r = enc_info.info.split('   ')
         if l == '' or r == '':
             return
-        self.l = int(l)
-        self.r = int(r)
+        self.r = int(l)
+        self.l = int(r)
         
     def publish_jt(self):
         pl = self.l*self.con
