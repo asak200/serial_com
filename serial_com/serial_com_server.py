@@ -52,10 +52,12 @@ class ComNode(Node):
     def listen(self):
         try:
             while True:
-                # time.sleep(0.01)
+                time.sleep(0.01)
                 if self.ser.in_waiting > 0: # to receive 
                     line = self.ser.readline().decode('utf-8').rstrip()
                     self.analize_msg(line)
+                    self.ser.reset_input_buffer()
+
                     
         except KeyboardInterrupt:
             print('close serial')

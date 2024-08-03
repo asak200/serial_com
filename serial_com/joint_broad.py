@@ -12,10 +12,10 @@ from math import pi
 
 class JointBroad(Node):
     def __init__(self):
-        qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST
-        )
+        # qos_profile = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        #     history=QoSHistoryPolicy.KEEP_LAST
+        # )
         super().__init__('joint_broad_asak')
         self.enc_listener = self.create_subscription(SerMsg, 
             'enc_val', self.get_enc, 10
@@ -25,7 +25,7 @@ class JointBroad(Node):
             'joint_states',
             10
         )
-        self.my_timer = self.create_timer(0.01, self.update_pose_vel)
+        self.my_timer = self.create_timer(0.01, self.publish_jt)
 
         self.joint_state_msg = JointState()
         self.ENC_COUNT_PER_REV = 2400
