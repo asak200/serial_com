@@ -13,6 +13,13 @@ class ComNode(Node):
     def __init__(self):
         super().__init__('serial_com_node')
 
+        # qos_profile = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        #     history=QoSHistoryPolicy.KEEP_LAST
+        # )
+        self.pub = self.create_publisher(SerMsg, 'serial_read', 10)
+        self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
+
         self.ser_port = f'/dev/ttyUSB0'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
         # for i in range(10):
@@ -27,12 +34,6 @@ class ComNode(Node):
         self.ser.reset_input_buffer()
         self.get_logger().info(f"Serial com established to {self.ser_port}")
 
-        qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST
-        )
-        self.pub = self.create_publisher(SerMsg, 'serial_read', qos_profile)
-        self.pub_enc = self.create_publisher(SerMsg, 'enc_val', qos_profile)
         self.vel_srv = self.create_service(CmdVelReq, 'send_vel_srv', self.send_vel)
         self.el = '0'
         self.er = '0'

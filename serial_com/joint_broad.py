@@ -18,7 +18,7 @@ class JointBroad(Node):
         )
         super().__init__('joint_broad_asak')
         self.enc_listener = self.create_subscription(SerMsg, 
-            'enc_val', self.get_enc, qos_profile
+            'enc_val', self.get_enc, 10
         )
         self.joint_states_pub = self.create_publisher(
             JointState,
