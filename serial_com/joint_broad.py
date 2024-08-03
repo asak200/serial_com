@@ -5,25 +5,31 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from pose_int.msg import SerMsg
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+
 
 from math import pi
 
 class JointBroad(Node):
     def __init__(self):
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST
+        )
         super().__init__('joint_broad_asak')
-        self.enc_listener = self.create_subscription(
-            SerMsg,
-            'enc_val',
-            self.get_enc,
-            10
+        self.enc_listener = self.create_subscription(SerMsg, 
+            'enc_val', self.get_enc, qos_profile
         )
         self.joint_states_pub = self.create_publisher(
             JointState,
             'joint_states',
             10
         )
+        self.my_timer = self.create_timer(0.01, self.update_pose_vel)
+
         self.joint_state_msg = JointState()
         self.ENC_COUNT_PER_REV = 2400
+        self.con = 2*pi / self.ENC_COUNT_PER_REV
 
         self.get_logger().info("joint state broadcaster initialized")
 
@@ -33,8 +39,12 @@ class JointBroad(Node):
         l, r = enc_info.info.split('   ')
         if l == '' or r == '':
             return
-        pl = int(l)*2*pi / self.ENC_COUNT_PER_REV
-        pr = int(r)*2*pi / self.ENC_COUNT_PER_REV
+        self.l = int(l)
+        self.r = int(r)
+        
+    def publish_jt(self):
+        pl = self.l*self.con
+        pr = self.r*self.con
         
         # Update joint states
         self.joint_state_msg.header = Header()

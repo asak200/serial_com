@@ -8,6 +8,7 @@ from geometry_msgs.msg import TransformStamped, Twist
 from tf2_msgs.msg import TFMessage
 from example_interfaces.msg import Float64, String
 from sensor_msgs.msg import Joy
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 import time
 from transforms3d.euler import euler2quat
@@ -52,7 +53,7 @@ class DiffContNode(Node):
         self.publish_vel = self.create_publisher(String, 'speed_feedback', 10)
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
-        # self.my_timer = self.create_timer(0.02, self.update_pose_vel)
+        self.my_timer = self.create_timer(0.01, self.update_pose_vel)
         self.pid_left = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
         self.pid_right = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
 
@@ -104,7 +105,6 @@ class DiffContNode(Node):
             return
         self.l = int(l)
         self.r = int(r)
-        self.update_pose_vel()
         
         # self.get_logger().info(f"{self.l}, {self.r}")
         
@@ -157,7 +157,6 @@ class DiffContNode(Node):
         msg = TFMessage(transforms=[t])
         self.tf_pub.publish(msg)
         
-    
     def apply_controlled_vel(self, msg: Twist):
         # GET SPEED FOR THE FIRSR MOVE
         # if self.prev_vx == 0 and vx > 0:
@@ -212,8 +211,8 @@ class DiffContNode(Node):
     def apply_constant_vel(self, msg: Twist):
         vx = msg.linear.x
         az = msg.angular.z
-        pwm_l = 200
-        pwm_r = 200
+        pwm_l = 100
+        pwm_r = 100
 
         # if self.prev_vx == 0 and vx > 0:
         #     self.start_a = self.get_clock().now().nanoseconds
@@ -235,12 +234,12 @@ class DiffContNode(Node):
                 pwm_r *= -1
                 cmd = f"vs:{pwm_l}{pwm_r}"
         elif az > 0 and vx == 0:
-            pwm_l = -150
-            pwm_r = 150
+            pwm_l = -100
+            pwm_r = 100
             cmd = f"vs:{pwm_l} {pwm_r}"
         elif az < 0 and vx == 0:
-            pwm_l = 150
-            pwm_r = -150
+            pwm_l = 100
+            pwm_r = -100
             cmd = f"vs: {pwm_l}{pwm_r}"
         
         self.req.speed_request = cmd + '\n'

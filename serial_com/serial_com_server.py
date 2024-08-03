@@ -4,6 +4,7 @@ import rclpy
 from rclpy.node import Node
 from pose_int.msg import SerMsg
 from pose_int.srv import CmdVelReq
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 import serial, time, threading
 
@@ -26,12 +27,15 @@ class ComNode(Node):
         self.ser.reset_input_buffer()
         self.get_logger().info(f"Serial com established to {self.ser_port}")
 
-        self.pub = self.create_publisher(SerMsg, 'serial_read', 10)
-        self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST
+        )
+        self.pub = self.create_publisher(SerMsg, 'serial_read', qos_profile)
+        self.pub_enc = self.create_publisher(SerMsg, 'enc_val', qos_profile)
         self.vel_srv = self.create_service(CmdVelReq, 'send_vel_srv', self.send_vel)
         self.el = '0'
         self.er = '0'
-        self.i = 0
 
         self.serial_thread = threading.Thread(target=self.listen)
         self.serial_thread.daemon = True
@@ -51,12 +55,6 @@ class ComNode(Node):
                 if self.ser.in_waiting > 0: # to receive 
                     line = self.ser.readline().decode('utf-8').rstrip()
                     self.analize_msg(line)
-                # elif self.el == '0' and self.er == '0':
-                #     msg = SerMsg()
-                #     msg.head = 'enc'
-                #     msg.info = '0   0'
-                #     self.i += 1
-                #     self.pub_enc.publish(msg)
                     
         except KeyboardInterrupt:
             print('close serial')
