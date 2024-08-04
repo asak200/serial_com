@@ -4,7 +4,7 @@ import rclpy
 from rclpy.node import Node
 from pose_int.msg import SerMsg
 from pose_int.srv import CmdVelReq
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from example_interfaces.msg import String
 
 import serial, time, threading
 
@@ -19,8 +19,9 @@ class ComNode(Node):
         # )
         self.pub = self.create_publisher(SerMsg, 'serial_read', 10)
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
+        self.qr_sub = self.create_subscription(String, 'qr_order', self.send_qr_order, 10)
 
-        self.ser_port = f'/dev/ttyUSB0'
+        self.ser_port = f'/dev/ttyUSB1'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
         # for i in range(10):
         #     try:
@@ -83,6 +84,12 @@ class ComNode(Node):
         self.ser.write(msg.encode('utf-8'))
         self.get_logger().info(f"sending: {msg[3:-1]}")
         return resp
+    
+    def send_qr_order(self, msg:String):
+        msg = msg.data
+        self.ser.write(msg.encode('utf-8'))
+        self.get_logger().info(f"sending: {msg[3:-1]}")
+
 
 def main(args=None):
     rclpy.init(args=args)

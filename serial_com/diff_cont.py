@@ -12,7 +12,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 import time
 from transforms3d.euler import euler2quat
-from math import pi, cos, sin
+from math import pi, cos, sin, atan, degrees
 
 class PIDController:
     def __init__(self, kp, ki, kd, max_output, min_output):
@@ -53,7 +53,8 @@ class DiffContNode(Node):
         self.publish_vel = self.create_publisher(String, 'speed_feedback', 10)
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
-        # self.my_timer = self.create_timer(0.01, self.update_pose_vel)
+        self.my_timer = self.create_timer(0.01, self.update_pose_vel)
+        # self.my_timer_ = self.create_timer(0.1, self.apply_gui_vel)
         self.pid_left = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
         self.pid_right = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
 
@@ -89,8 +90,8 @@ class DiffContNode(Node):
         self.distance_per_count = 2*pi*self.radius / self.ENC_COUNT_PER_REV
 
         self.req = CmdVelReq.Request()
-        while not self.vel_cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Service not available, waiting...')
+        # while not self.vel_cli.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().info('Service not available, waiting...')
         self.get_logger().info("Diff drive controller initialized")
 
     def joy_callback(self, msg:Joy):
@@ -109,9 +110,11 @@ class DiffContNode(Node):
         # self.get_logger().info(f"{self.l}, {self.r}")
         
         # print(f"x: {self.pose_x}\ny: {self.pose_y}\nang: {self.pose_ang}")
-        self.update_pose_vel()
+        # self.update_pose_vel()
 
     def update_pose_vel(self):
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg()
         denc_l = self.l - self.prev_enc_l
         denc_r = self.r - self.prev_enc_r
         self.dxl = denc_l * self.distance_per_count
@@ -136,11 +139,9 @@ class DiffContNode(Node):
         self.pose_y += d * sin(self.pose_ang + ang/2)
         self.pose_ang += ang
         
-        self.pulish_to_tf()        
+        self.pulish_to_tf(t)        
 
-    def pulish_to_tf(self):
-        t = TransformStamped()
-        t.header.stamp = self.get_clock().now().to_msg()
+    def pulish_to_tf(self, t: TransformStamped):
         t.header.frame_id = 'odom'
         t.child_frame_id = 'base_link'
         t.transform.translation.x = self.pose_x
@@ -182,35 +183,74 @@ class DiffContNode(Node):
         #     pwm_l = 0
         #     pwm_r = 0
 
-        pwm_l, p2 = self.pid_left.compute(vl, self.real_vl, 130)
-        pwm_r, p3 = self.pid_right.compute(vr, self.real_vr, 130)
-        self.get_logger().info(f"pwms: {p2} {p3}")
+        pwm_l = 0
+        pwm_r = 0
+
+        def map_value(x,in_min=0, in_max=90, out_min=-200, out_max=200):
+            return ((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
         if self.joyB or self.joyA:
             cmd = "vs:"
-            if vl < 0:
-                cmd += f'-{pwm_l}'
-            elif vl > 0:
-                cmd += f' {pwm_l}'
+            if az == 0:
+                ang = 90
+            else:
+                ang = degrees(atan(abs(vx)/abs(az)))
+
+            mag = 200 * (vx*vx + az*az) ** 0.5
+            if vx > 0 and az < 0:
+                pwm_l = mag
+                pwm_r = map_value(ang)
+            elif vx > 0 and az > 0:
+                pwm_l = map_value(ang)
+                pwm_r = mag
+            elif vx < 0 and az < 0:
+                pwm_l = map_value(ang, out_min=200, out_max=-200)
+                pwm_r = -mag
+            elif vx < 0 and az > 0:
+                pwm_l = -mag
+                pwm_r = map_value(ang, out_min=200, out_max=-200)
+            elif az > 0:
+                pwm_l = -mag
+                pwm_r = mag
+            elif az < 0:
+                pwm_l = mag
+                pwm_r = -mag
+            elif vx > 0:
+                pwm_l = mag
+                pwm_r = mag
+            elif vx < 0:
+                pwm_l = -mag
+                pwm_r = -mag
+            else:
+                pwm_l = 0
+                pwm_r = 0
+
+            if pwm_l > 0:
+                cmd += f' {int(pwm_l):03}'
+            elif pwm_l < 0:
+                cmd += f'{int(pwm_l):04}'
             else:
                 cmd += ' 000'
-            
-            if vr < 0:
-                cmd += f'-{pwm_r}'
-            elif vr > 0:
-                cmd += f' {pwm_r}'
+            if pwm_r > 0:
+                if pwm_r < 100:
+                    pwm_r = 100
+                cmd += f' {int(pwm_r):03}'
+            elif pwm_r < 0:
+                if pwm_r > -100:
+                    pwm_r = -100
+                cmd += f'{int(pwm_r):04}'
             else:
                 cmd += ' 000'
 
             self.req.speed_request = cmd + '\n'
-            # self.get_logger().info(f"{cmd}")
+            self.get_logger().info(f"{cmd}, ang: {ang}")
             self.vel_cli.call_async(self.req)
 
     def apply_constant_vel(self, msg: Twist):
         vx = msg.linear.x
         az = msg.angular.z
-        pwm_l = 100
-        pwm_r = 100
+        pwm_l = 145
+        pwm_r = 150
 
         # if self.prev_vx == 0 and vx > 0:
         #     self.start_a = self.get_clock().now().nanoseconds
@@ -232,16 +272,45 @@ class DiffContNode(Node):
                 pwm_r *= -1
                 cmd = f"vs:{pwm_l}{pwm_r}"
         elif az > 0 and vx == 0:
-            pwm_l = -100
-            pwm_r = 100
+            pwm_l = -120
+            pwm_r = 120
             cmd = f"vs:{pwm_l} {pwm_r}"
         elif az < 0 and vx == 0:
-            pwm_l = 100
-            pwm_r = -100
+            pwm_l = 120
+            pwm_r = -120
             cmd = f"vs: {pwm_l}{pwm_r}"
         
         self.req.speed_request = cmd + '\n'
         self.get_logger().info(f"sendin {vx}, {az}")
+        self.vel_cli.call_async(self.req)
+
+    def apply_gui_vel(self):
+        with open("/home/asak/dev_ws2/cmd.txt", 'r') as file:
+            v = file.read()
+            
+        pwm_l = 120
+        pwm_r = 120
+
+        cmd = f"vs: {pwm_l} {pwm_r}"
+        if v == 's':
+            pwm_l = 0
+            pwm_r = 0
+            cmd = "vs: 000 000"
+        elif v == 'b':
+            pwm_l *= -1
+            pwm_r *= -1
+            cmd = f"vs:{pwm_l}{pwm_r}"
+        elif v == 'l':
+            pwm_l = -120
+            pwm_r = 120
+            cmd = f"vs:{pwm_l} {pwm_r}"
+        elif v == 'r':
+            pwm_l = 120
+            pwm_r = -120
+            cmd = f"vs: {pwm_l}{pwm_r}"
+        
+        self.req.speed_request = cmd + '\n'
+        self.get_logger().info(f"sendin {self.req.speed_request}")
         self.vel_cli.call_async(self.req)
 
 def main(args=None):
