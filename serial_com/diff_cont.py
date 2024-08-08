@@ -45,8 +45,8 @@ class DiffContNode(Node):
     def __init__(self):
         super().__init__('diff_cont_asak')
         self.enc_listener = self.create_subscription(SerMsg, 'enc_val', self.get_enc, 10)
-        self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_constant_vel, 10)
-        # self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_controlled_vel, 10)
+        # self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.apply_constant_vel, 10)
+        # self.joy_listener = self.create_subscription(Twist, 'cmd_vel_joy', self.asak_control_vel, 10)
         self.joy_but = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
         self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
@@ -54,7 +54,7 @@ class DiffContNode(Node):
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
         self.my_timer = self.create_timer(0.01, self.update_pose_vel)
-        # self.my_timer_ = self.create_timer(0.1, self.apply_gui_vel)
+        self.my_timer_ = self.create_timer(0.02, self.apply_gui_vel)
         self.pid_left = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
         self.pid_right = PIDController(kp=100.0, ki=20., kd=10., max_output=255, min_output=130)
 
@@ -156,7 +156,7 @@ class DiffContNode(Node):
         msg = TFMessage(transforms=[t])
         self.tf_pub.publish(msg)
         
-    def apply_controlled_vel(self, msg: Twist):
+    def asak_control_vel(self, msg: Twist):
         # GET SPEED FOR THE FIRSR MOVE
         # if self.prev_vx == 0 and vx > 0:
         #     self.start_a = self.get_clock().now().nanoseconds
@@ -285,7 +285,7 @@ class DiffContNode(Node):
         self.vel_cli.call_async(self.req)
 
     def apply_gui_vel(self):
-        with open("/home/asak/dev_ws2/cmd.txt", 'r') as file:
+        with open("/home/asak/dev_ws2/src/cmd.txt", 'r') as file:
             v = file.read()
             
         pwm_l = 120
