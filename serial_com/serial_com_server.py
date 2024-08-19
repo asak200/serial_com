@@ -12,11 +12,6 @@ class ComNode(Node):
 
     def __init__(self):
         super().__init__('serial_com_node')
-
-        # qos_profile = QoSProfile(
-        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        #     history=QoSHistoryPolicy.KEEP_LAST
-        # )
         self.pub = self.create_publisher(SerMsg, 'serial_read', 10)
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
         self.qr_sub = self.create_subscription(String, 'qr_order', self.send_qr_order, 10)
@@ -43,10 +38,10 @@ class ComNode(Node):
         self.serial_thread.daemon = True
         self.serial_thread.start()
 
-        # iniitialize
+        # initialize
         msg = SerMsg()
         msg.head = 'enc'
-        msg.info = '0   0'
+        msg.info = '0   0   0   0   0'
         for _ in range(2000):
             self.pub_enc.publish(msg)
 
@@ -57,7 +52,7 @@ class ComNode(Node):
                 if self.ser.in_waiting > 0: # to receive 
                     line = self.ser.readline().decode('utf-8').rstrip()
                     self.analize_msg(line)
-                    self.ser.reset_input_buffer()
+                    # self.ser.reset_input_buffer()
 
                     
         except KeyboardInterrupt:
@@ -73,8 +68,9 @@ class ComNode(Node):
         msg.info = content
         if order == 'enc':
             self.pub_enc.publish(msg)
-            if '   ' in content:
-                self.el, self.er = content.split('   ')
+            c = content.split("   ")
+            self.get_logger().info(f"{c}")
+            self.ser.reset_input_buffer()
         else:
             self.pub.publish(msg)
 
@@ -82,7 +78,7 @@ class ComNode(Node):
         msg = req.speed_request
         # self.get_logger().info(msg)
         self.ser.write(msg.encode('utf-8'))
-        self.get_logger().info(f"sending: {msg[3:-1]}")
+        # self.get_logger().info(f"sending: {msg[3:-1]}")
         return resp
     
     def send_qr_order(self, msg:String):
