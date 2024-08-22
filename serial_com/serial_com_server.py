@@ -53,9 +53,9 @@ class ComNode(Node):
                 time.sleep(0.01)
                 # self.get_logger().info("while")
                 if self.ser.in_waiting > 0: # to receive 
-                    # self.get_logger().info("if")
+                    self.get_logger().info("if")
                     line = self.ser.readline().decode('utf-8').rstrip()
-                    # self.get_logger().info("read")
+                    self.get_logger().info("read")
                     self.get_logger().info(line)   
                     self.analize_msg(line)
                     self.ser.reset_input_buffer()
