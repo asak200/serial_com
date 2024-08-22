@@ -60,6 +60,8 @@ class ComNode(Node):
             self.ser.close()
     
     def analize_msg(self, line: str):
+        self.get_logger().info(line)
+        
         if not ': ' in line or len(line.split(': ')) != 2:
             return
         order, content = line.split(': ')
