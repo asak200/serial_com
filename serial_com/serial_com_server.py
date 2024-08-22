@@ -52,7 +52,7 @@ class ComNode(Node):
                 if self.ser.in_waiting > 0: # to receive 
                     line = self.ser.readline().decode('utf-8').rstrip()
                     self.analize_msg(line)
-                    # self.ser.reset_input_buffer()
+                    self.ser.reset_input_buffer()
 
                     
         except KeyboardInterrupt:
@@ -61,7 +61,7 @@ class ComNode(Node):
     
     def analize_msg(self, line: str):
         self.get_logger().info(line)
-        
+
         if not ': ' in line or len(line.split(': ')) != 2:
             return
         order, content = line.split(': ')
