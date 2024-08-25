@@ -71,8 +71,19 @@ class DiffContNode(Node):
         self.get_logger().info("Diff drive controller initialized")
 
     def joy_callback(self, msg:Joy):
+        self.prev_joyA = self.joyA
         self.joyA = msg.buttons[0]
         self.joyB = msg.buttons[1]
+
+        if self.prev_joyA and not self.joyA:
+            for _ in range(50):
+                cmd = f'vs: 0.00 0.00\n'
+                req = CmdVelReq.Request
+                req.speed_request = cmd
+                self.get_logger().info(cmd)
+                self.vel_cli.call_async(self.req)
+
+        
 
     def get_enc(self, enc_info: SerMsg):
         if not '  ' in enc_info.info or len(enc_info.info.split('  ')) != 7:
@@ -85,7 +96,6 @@ class DiffContNode(Node):
         self.real_vl = float(vl)
         self.real_vr = float(vr)
         # self.get_logger().info(time_ + ' ' + dxl + ' ' + dxr + ' ' + vl + ' ' + vr + ' ' + a + ' ' + b)
-
 
     def update_pose(self):
         tf = TransformStamped()
