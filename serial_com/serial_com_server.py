@@ -16,7 +16,7 @@ class ComNode(Node):
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
         self.qr_sub = self.create_subscription(String, 'qr_order', self.send_qr_order, 10)
 
-        self.ser_port = f'/dev/ttyUSB1'
+        self.ser_port = f'/dev/ttyUSB0'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
         # for i in range(10):
         #     try:
