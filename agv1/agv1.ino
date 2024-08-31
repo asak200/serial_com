@@ -51,8 +51,8 @@ volatile long lastEncoded, lastEncoded1;
 double pt, t, dt;
 float xtl, xtr, rev, vl, vr, svl, svr, xr, xl, ang, st_ang;
 String str_sr = "0.00", str_sl = "0.00", psl, psr;
-float sr, sl, read_sl, read_sr, sl_0, sr_0;
-short v_c, qr_order;
+float sr, sl, read_sl, read_sr, prsl, prsr;
+short v_c, qr_order, sl_0, sr_0;
 
 float leftPIDOutput, rightPIDOutput;
 int leftPWM, rightPWM;
@@ -189,6 +189,8 @@ void get_vel(String a){
     sr = read_sr;
     sr_0 = 0;
   }
+  prsl = sl;
+  prsr = sr;
 }
 void get_orded(String a){
   char qr = a[4];
@@ -225,7 +227,7 @@ void get_real_vel_pose(){
   xr += dxr;
 
   // calculate angle
-  float angl = (dxr-dxl)/WHEEL_SAP * 3.14159;
+  float angl = (dxr-dxl)/WHEEL_SAP * 180 / 3.14159;
   ang += angl;
   
   // get dt and calculate the velocity
@@ -265,18 +267,18 @@ void get_real_vel_pose(){
     Serial.println("");
 }
 void turn_90_degs(){
-  if(qr_order == 1 && (ang - st_ang) > 90.){
+  if(qr_order == 1 && (ang - st_ang) < 90.){
     sl = 0.;
     sr = 0.5;
   }
-  else if(qr_order == -1 && (ang - st_ang) < 90.){
+  else if(qr_order == -1 && (ang - st_ang) > -90.){
     sl = 0.5;
     sr = 0.;
   }
   else{
     qr_order = 0;
-    sl = 0;
-    sr = 0;
+    sl = prsl;
+    sr = prsr;
   }
 }
 
