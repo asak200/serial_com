@@ -1,0 +1,212 @@
+#include "Driver.h"
+#include "Robot.h"
+#include <QTRSensors.h>
+
+Driver left_motor(22,23,2,3);
+Driver right_motor(28,29,8,9);
+
+Driver actuator1(24,25,4,5);
+Driver actuator2(26,27,6,7);
+
+Robot robot(right_motor, left_motor, actuator1, actuator2);
+
+QTRSensors qtr;
+
+#define Kp 0.025
+#define Kd 0.0001
+#define MaxSpeed 180
+#define BaseSpeed 150
+int sl;
+int sr;
+
+
+int lastError = 0; 
+const uint8_t SensorCount = 8;
+// IR Sensors Count 
+uint16_t sensorValues[SensorCount];
+
+//**************************************************
+int encoder_Pin_1 = 18;
+int encoder_Pin_2 = 19;
+
+volatile int lastEncoded = 0;
+volatile long encoderValue = 0;
+
+long lastencoderValue = 0;
+
+int lastMSB = 0;
+int lastLSB = 0;
+
+//second 
+int encoder_Pin_3 = 20;
+int encoder_Pin_4 = 21;
+
+volatile int lastEncoded1 = 0;
+volatile long encoderValue1 = 0;
+
+long lastencoderValue1 = 0;
+
+int lastMSB1 = 0;
+int lastLSB1 = 0;
+
+long prev_el = 0;
+long prev_er = 0;
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(115200);
+  robot.init();
+
+  //QTR sensor setup
+  // qtr.setTypeAnalog();
+  // qtr.setSensorPins((const uint8_t[]){A0, A1, A2, A3, A4, A5, A6, A7}, SensorCount);
+  
+  // ********************************************************************************
+  pinMode(encoder_Pin_1, INPUT); 
+  pinMode(encoder_Pin_2, INPUT);
+
+  digitalWrite(encoder_Pin_1, HIGH); //turn pullup resistor on
+  digitalWrite(encoder_Pin_2, HIGH); //turn pullup resistor on
+
+  //call updateEncoder() when any high/low changed seen
+  //on interrupt 0 (pin 2), or interrupt 1 (pin 3) 
+  attachInterrupt(digitalPinToInterrupt(18), updateEncoder, CHANGE); 
+  attachInterrupt(digitalPinToInterrupt(19), updateEncoder, CHANGE);
+  //second
+  pinMode(encoder_Pin_3, INPUT); 
+  pinMode(encoder_Pin_4, INPUT);
+
+  digitalWrite(encoder_Pin_3, HIGH); //turn pullup resistor on
+  digitalWrite(encoder_Pin_4, HIGH); //turn pullup resistor on
+
+  //call updateEncoder() when any high/low changed seen
+  //on interrupt 0 (pin 2), or interrupt 1 (pin 3) 
+  attachInterrupt(digitalPinToInterrupt(20), updateEncoder1, CHANGE); 
+  attachInterrupt(digitalPinToInterrupt(21), updateEncoder1, CHANGE);
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  // delay(1000); //just here to slow down the output, and show it will work  even during a delay
+
+  if(Serial.available()){
+    String msg = Serial.readStringUntil('\n');
+    if (msg[0] == 'v' && msg[1] == 's') get_vel(msg);
+  }
+
+  if (prev_el != encoderValue || prev_er != encoderValue1){
+    Serial.print("enc: ");
+    Serial.print(encoderValue);
+    Serial.print("   ");
+    Serial.println(encoderValue1);
+  }
+  prev_el = encoderValue;
+  prev_er = encoderValue1;
+
+}
+
+void followLine()
+{
+  uint16_t position = qtr.readLineBlack(sensorValues);
+  for (uint8_t i = 0; i < SensorCount; i++)
+    {
+      Serial.print(sensorValues[i]);
+      Serial.print('\t');
+    }
+    Serial.println(position);
+
+    // too Right, Robot will go left
+    if(position>3800)  
+    {
+        robot.left(BaseSpeed);
+        return;    
+    }
+
+    // too Left, Robot will go right
+    if(position<2900)
+    {  
+        robot.right(BaseSpeed);
+        return;
+    }
+
+    int error = position - 3500;
+    int motorSpeed = Kp * error + Kd * (error - lastError);
+    lastError = error;
+
+    Serial.print("Error: ");
+    Serial.println(error);
+
+    int rightMotorSpeed = BaseSpeed + motorSpeed;
+    int leftMotorSpeed = BaseSpeed - motorSpeed;
+  
+    if (rightMotorSpeed > MaxSpeed ) rightMotorSpeed = MaxSpeed; 
+    if (leftMotorSpeed > MaxSpeed ) leftMotorSpeed = MaxSpeed;
+    if (rightMotorSpeed < 0)rightMotorSpeed = 0;    
+    if (leftMotorSpeed < 0)leftMotorSpeed = 0;
+    
+    robot.forward(rightMotorSpeed,rightMotorSpeed);
+}
+
+void calibrate()
+{
+    // QTR calibration
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(3000);
+  
+  for (int i = 0; i < 400; i++)
+  {   
+      qtr.calibrate();
+
+  }
+
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(3000); 
+}
+
+void updateEncoder()
+{
+  int MSB = digitalRead(encoder_Pin_1); //MSB = most significant bit
+  int LSB = digitalRead(encoder_Pin_2); //LSB = least significant bit
+
+  int encoded = (MSB << 1) |LSB; //converting the 2 pin value to single number
+  int sum  = (lastEncoded << 2) | encoded; //adding it to the previous encoded value
+
+  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValue ++;
+  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValue --;
+
+  lastEncoded = encoded; //store this value for next time
+}
+
+void updateEncoder1()
+{
+  int MSB1 = digitalRead(encoder_Pin_3); //MSB = most significant bit
+  int LSB1 = digitalRead(encoder_Pin_4); //LSB = least significant bit
+
+  int encoded1 = (MSB1 << 1) |LSB1; //converting the 2 pin value to single number
+  int sum  = (lastEncoded1 << 2) | encoded1; //adding it to the previous encoded value
+
+  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValue1 ++;
+  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValue1 --;
+
+  lastEncoded1 = encoded1; //store this value for next time
+}
+
+void get_vel(String a){
+  sl = (a[4] - 48) * 100 + (a[5] - 48) * 10 + (a[6] - 48);
+  if (a[3] == '-') sl *= -1;
+  sr = (a[8] - 48) * 100 + (a[9] - 48) * 10 + (a[10] - 48);
+  if (a[7] == '-') sr *= -1;
+
+  Serial.print("sp: ");
+  Serial.print(sl);
+  Serial.print(" ");
+  Serial.println(sr);
+
+  if(sl>0 && sr > 0) robot.forward(sl, sr);
+  else if(sl < 0 && sr < 0) robot.backward(-1*sl, -1*sr);
+  else if(sl < 0 && sr > 0) robot.left(sr);
+  else if(sl > 0 && sr < 0) robot.right(sl);
+  else robot.stop_move();
+
+}

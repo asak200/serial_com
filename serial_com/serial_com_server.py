@@ -14,7 +14,6 @@ class ComNode(Node):
         super().__init__('serial_com_node')
         self.pub = self.create_publisher(SerMsg, 'serial_read', 10)
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
-        self.qr_sub = self.create_subscription(String, 'qr_order', self.send_qr_order, 10)
 
         self.ser_port = f'/dev/ttyUSB0'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
@@ -41,7 +40,7 @@ class ComNode(Node):
         # initialize
         msg = SerMsg()
         msg.head = 'enc'
-        msg.info = '0   0   0   0   0'
+        msg.info = '0  0  0  0  0'
         for _ in range(2000):
             self.pub_enc.publish(msg)
 
@@ -75,7 +74,7 @@ class ComNode(Node):
         msg.info = content
         if order == 'enc':
             self.pub_enc.publish(msg)
-            c = content.split("   ")
+            c = content.split("  ")
             self.get_logger().info(f"{c}")
             self.ser.reset_input_buffer()
         else:
@@ -87,11 +86,6 @@ class ComNode(Node):
         self.ser.write(msg.encode('utf-8'))
         # self.get_logger().info(f"sending: {msg[3:-1]}")
         return resp
-    
-    def send_qr_order(self, msg:String):
-        msg = msg.data
-        self.ser.write(msg.encode('utf-8'))
-        self.get_logger().info(f"sending: {msg[3:-1]}")
 
 
 def main(args=None):

@@ -14,7 +14,7 @@ from transforms3d.euler import euler2quat
 from math import pi, cos, sin
 
 MAXSPEED = 0.54
-MINSPEED = 0.20
+MINSPEED = 0.10
 
 class DiffContNode(Node):
     def __init__(self):
@@ -37,69 +37,49 @@ class DiffContNode(Node):
         self.dxr = 0
         self.l = 0
         self.r = 0
-        self.pose_x = 0
-        self.pose_y = 0
-        self.pose_ang = 0
-        self.prev_enc_l = 0
-        self.prev_enc_r = 0
-        self.pt = -1
-        self.ort = time.time()
-        self.v_m = String()
-        self.start_a = 0
-        self.prev_vx = 0
+        self.pose_x = 0.
+        self.pose_y = 0.
+        self.pose_ang = 0.
         self.real_vl = 0
         self.real_vr = 0
         self.joyA = 0
         self.joyB = 0
-        self.zero_ch = 0
-        self.vel_counter = 0
 
-        # small wheel
-        # self.ENC_COUNT_PER_REV = 22
-        # self.radius = 0.035
-        # self.wheel_separation = 0.14
-        # real wheel
-        self.ENC_COUNT_PER_REV = 2500
-        self.radius = 0.1
         self.wheel_separation = 0.55
 
-        self.distance_per_count = 2*pi*self.radius / self.ENC_COUNT_PER_REV
-
         self.req = CmdVelReq.Request()
-        # while not self.vel_cli.wait_for_service(timeout_sec=1.0):
-        #     self.get_logger().info('Service not available, waiting...')
+        while not self.vel_cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Service not available, waiting...')
         self.get_logger().info("Diff drive controller initialized")
 
     def joy_callback(self, msg:Joy):
-        self.prev_joyA = self.joyA
+        # self.prev_joyA = self.joyA
         self.joyA = msg.buttons[0]
         self.joyB = msg.buttons[1]
 
-        if self.prev_joyA and not self.joyA:
-            for _ in range(50):
-                cmd = f'vs: 0.00 0.00\n'
-                req = CmdVelReq.Request
-                req.speed_request = cmd
-                self.get_logger().info(cmd)
-                self.vel_cli.call_async(self.req)
-
-        
+        # if self.prev_joyA and not self.joyA:
+        #     for _ in range(50):
+        #         cmd = f'vs: 0.00 0.00\n'
+        #         req = CmdVelReq.Request
+        #         req.speed_request = cmd
+        #         self.get_logger().info(cmd)
+        #         self.vel_cli.call_async(self.req)
 
     def get_enc(self, enc_info: SerMsg):
-        if not '  ' in enc_info.info or len(enc_info.info.split('  ')) != 7:
+        if not '  ' in enc_info.info or len(enc_info.info.split('  ')) != 6:
             return
-        time_, dxl, dxr, vl, vr, a, b = enc_info.info.split('  ')
-        if time_ == '' or dxl == '' or dxr == '' or vl == '' or vr == '':
+        dxl, dxr, vl, vr, sl, sr = enc_info.info.split('  ')
+        if dxl == '' or dxr == '' or vl == '' or vr == '':
             return
+        tf = TransformStamped()
+        tf.header.stamp = self.get_clock().now().to_msg()
+
         self.dxl = float(dxl)
         self.dxr = float(dxr)
         self.real_vl = float(vl)
         self.real_vr = float(vr)
-        # self.get_logger().info(time_ + ' ' + dxl + ' ' + dxr + ' ' + vl + ' ' + vr + ' ' + a + ' ' + b)
-
-    def update_pose(self):
-        tf = TransformStamped()
-        tf.header.stamp = self.get_clock().now().to_msg()
+        # self.xl += self.dxl
+        # self.xr += self.dxr
 
         d = (self.dxr+self.dxl)/2
         ang = (self.dxr-self.dxl)/self.wheel_separation
@@ -107,7 +87,10 @@ class DiffContNode(Node):
         self.pose_x += d * cos(self.pose_ang + ang/2)
         self.pose_y += d * sin(self.pose_ang + ang/2)
         self.pose_ang += ang
-        
+        # self.get_logger().info(f'{self.xl} {self.xr} '+ ' ' + xl + ' ' + xr)
+        self.update_pose(tf)
+
+    def update_pose(self, tf: TransformStamped):
         tf.header.frame_id = 'odom'
         tf.child_frame_id = 'base_link'
         tf.transform.translation.x = self.pose_x
@@ -147,7 +130,7 @@ class DiffContNode(Node):
         cmd = f'vs:{vl: 0.2f}{vr: 0.2f}\n'
         req = CmdVelReq.Request
         req.speed_request = cmd
-        self.get_logger().info(cmd)
+        # self.get_logger().info(cmd)
         self.vel_cli.call_async(self.req)
 
     def apply_constant_vel(self, msg: Twist):
@@ -156,7 +139,6 @@ class DiffContNode(Node):
         pwm_l = 200
         pwm_r = 200
 
-        self.prev_vx = vx
         cmd = f"vs: {pwm_l} {pwm_r}"
         if vx == 0. and az == 0.:
             pwm_l = 0
