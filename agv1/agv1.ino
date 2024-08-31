@@ -49,10 +49,10 @@ volatile long lastEncoded, lastEncoded1;
 
 // motor speed reqeuests
 double pt, t, dt;
-float xtl, xtr, rev, vl, vr, svl, svr, xr, xl, ang;
+float xtl, xtr, rev, vl, vr, svl, svr, xr, xl, ang, st_ang;
 String str_sr = "0.00", str_sl = "0.00", psl, psr;
 float sr, sl, read_sl, read_sr, sl_0, sr_0;
-unsigned short v_c;
+short v_c, qr_order;
 
 float leftPIDOutput, rightPIDOutput;
 int leftPWM, rightPWM;
@@ -134,9 +134,11 @@ void setup() {
 void loop() {
   if (Serial.available()){
     String msg = Serial.readStringUntil('\n'); // to recieve
-    if (msg[0] == 'v' && msg[1] == 's') get_vel(msg);
+    if (msg[0] == 'v' && msg[1] == 's' && qr_order == 0) get_vel(msg);
+    else if (msg[0] == 'o' && msg[1] == 'r') get_orded(msg);
   }
   get_real_vel_pose();
+  turn_90_degs();
 
   // robot.forward(200, 200);
   
@@ -188,7 +190,19 @@ void get_vel(String a){
     sr_0 = 0;
   }
 }
+void get_orded(String a){
+  char qr = a[4];
+  if (qr == 'l') {
+    qr_order = 1;
+    st_ang = ang;
+  }
+  else if (qr == 'r') {
+    qr_order = -1;
+    st_ang = ang;
+  }
 
+  while (Serial.available()) Serial.read();
+}
 void get_real_vel_pose(){
   // x = 2t (m)
   // rev = x /(2*pi*r) (rad)
@@ -245,8 +259,25 @@ void get_real_vel_pose(){
     Serial.print(sr);
     Serial.print("  ");
     Serial.print(ang, 5);
+    Serial.print("  ");
+    Serial.print(qr_order);
     
     Serial.println("");
+}
+void turn_90_degs(){
+  if(qr_order == 1 && (ang - st_ang) > 90.){
+    sl = 0.;
+    sr = 0.5;
+  }
+  else if(qr_order == -1 && (ang - st_ang) < 90.){
+    sl = 0.;
+    sr = 0.5;
+  }
+  else{
+    qr_order = 0;
+    sl = 0;
+    sr = 0;
+  }
 }
 
 void updateEncoder(){
