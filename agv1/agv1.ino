@@ -129,49 +129,6 @@ void setup() {
   rightPID.ki = ki;
   rightPID.kd = kd;
 
-  //QTR sensor setup
-  // qtr.setTypeAnalog();
-
-  // qtr.setSensorPins((const uint8_t[]){A0, A1, A2, A3, A4, A5, A6, A7}, SensorCount);
-  //calibrate();
-
-  // delay(1000);
-  Serial.println("f");
-  robot.forward(255, 255);
-  // delay(1500);
-  // robot.stop_move();
-  // delay(500);
-
-  // Serial.println("b");
-  // robot.backward(255, 255);
-  // delay(1500);
-  // robot.stop_move();
-  // delay(500);
-
-  // Serial.println("r");
-  // robot.right(255, 255);
-  // delay(1500);
-  // robot.stop_move();
-  // delay(500);
-
-  // Serial.println("l");
-  // robot.left(255, 255);
-  // delay(1500);
-  // robot.stop_move();
-  // delay(500);
-
-  // Serial.println("u");
-  // robot.up();
-  // delay(1500);
-  // robot.stop_lift();
-  // delay(500);
-
-  // Serial.println("D");
-  // robot.down();
-  // delay(2000);
-  // robot.stop_lift();
-  // delay(500);
-
 }
 
 void loop() {
@@ -181,22 +138,19 @@ void loop() {
   }
   get_real_vel_pose();
 
-  // robot.down();
-  // leftPIDOutput = calculatePID(leftPID, sl, vl, dt);
-  // rightPIDOutput = calculatePID(rightPID, sr, vr, dt);
+  // robot.forward(200, 200);
   
-  // leftPWM = calculatePWM(leftPIDOutput);
-  // rightPWM = calculatePWM(rightPIDOutput);
-
-  // robot.forward(rightPWM, leftPWM);
-
-  // if (sl == 0 && sr == 0) robot.stop_move();
-  // else if (sl >= 0 && sr >= 0) robot.forward(rightPWM, leftPWM);
-  // else if (sl <= 0 && sr <= 0) robot.backward(rightPWM, leftPWM);
-  // else if (sl < 0 && sr > 0) robot.left(rightPWM, leftPWM);
-  // else if (sl > 0 && sr < 0) robot.right(rightPWM, leftPWM);
-
+  leftPIDOutput = calculatePID(leftPID, sl, vl, dt);
+  rightPIDOutput = calculatePID(rightPID, sr, vr, dt);
   
+  leftPWM = calculatePWM(leftPIDOutput);
+  rightPWM = calculatePWM(rightPIDOutput);
+
+  if (sl == 0 && sr == 0) robot.stop_move();
+  else if (sl >= 0 && sr >= 0) robot.forward(rightPWM, leftPWM);
+  else if (sl <= 0 && sr <= 0) robot.backward(rightPWM, leftPWM);
+  else if (sl < 0 && sr > 0) robot.left(rightPWM, leftPWM);
+  else if (sl > 0 && sr < 0) robot.right(rightPWM, leftPWM);
 
   delay(10);
 }
