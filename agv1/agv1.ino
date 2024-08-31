@@ -246,9 +246,9 @@ void get_real_vel_pose(){
   }
   
   Serial.print("enc: ");
-    Serial.print(dxl, 5);
+    Serial.print(xl, 5);
     Serial.print("  ");
-    Serial.print(dxr, 5);
+    Serial.print(xr, 5);
     Serial.print("  ");
     Serial.print(vl);
     Serial.print("  ");
