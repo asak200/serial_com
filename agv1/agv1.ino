@@ -225,7 +225,7 @@ void get_real_vel_pose(){
   xr += dxr;
 
   // calculate angle
-  float angl = (dxr-dxl)/WHEEL_SAP;
+  float angl = (dxr-dxl)/WHEEL_SAP * 3.14159;
   ang += angl;
   
   // get dt and calculate the velocity
@@ -270,8 +270,8 @@ void turn_90_degs(){
     sr = 0.5;
   }
   else if(qr_order == -1 && (ang - st_ang) < 90.){
-    sl = 0.;
-    sr = 0.5;
+    sl = 0.5;
+    sr = 0.;
   }
   else{
     qr_order = 0;

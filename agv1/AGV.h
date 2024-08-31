@@ -1,7 +1,7 @@
 #ifndef AGV_H
 #define AGV_H
 #include <Arduino.h>
-#include <QTRSensors.h>
+//#include <QTRSensors.h>
 
 //********Driver Class************
 class Driver 
