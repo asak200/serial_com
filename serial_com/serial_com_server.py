@@ -57,7 +57,7 @@ class ComNode(Node):
                     # self.get_logger().info("read")
                     # self.get_logger().info(line)   
                     self.analize_msg(line)
-                    self.ser.reset_input_buffer()
+                    # self.ser.reset_input_buffer()
 
         except KeyboardInterrupt:
             print('close serial')
@@ -76,9 +76,10 @@ class ComNode(Node):
             self.pub_enc.publish(msg)
             c = content.split("  ")
             self.get_logger().info(f"{c}")
-            self.ser.reset_input_buffer()
         else:
             self.pub.publish(msg)
+            self.get_logger().info(f"{msg.info}")
+
 
     def send_vel(self, req: CmdVelReq.Request, resp):
         msg = req.speed_request

@@ -25,6 +25,7 @@ class DiffContNode(Node):
         self.joy_but = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
         self.vel_cli = self.create_client(CmdVelReq, 'send_vel_srv')
         self.tf_pub = self.create_publisher(TFMessage, 'tf', 10)
+        self.tf_pub = self.create_publisher(String, 'read', 10)
         self.publish_vel = self.create_publisher(String, 'speed_feedback', 10)
         self.publish_time = self.create_publisher(Float64, 'time_feedback', 10)
 
@@ -66,9 +67,9 @@ class DiffContNode(Node):
         #         self.vel_cli.call_async(self.req)
 
     def get_enc(self, enc_info: SerMsg):
-        if not '  ' in enc_info.info or len(enc_info.info.split('  ')) != 6:
+        if not '  ' in enc_info.info or len(enc_info.info.split('  ')) != 7:
             return
-        dxl, dxr, vl, vr, sl, sr = enc_info.info.split('  ')
+        dxl, dxr, vl, vr, sl, sr, a = enc_info.info.split('  ')
         if dxl == '' or dxr == '' or vl == '' or vr == '':
             return
         tf = TransformStamped()
@@ -80,7 +81,7 @@ class DiffContNode(Node):
         self.real_vr = float(vr)
         # self.xl += self.dxl
         # self.xr += self.dxr
-
+        
         d = (self.dxr+self.dxl)/2
         ang = (self.dxr-self.dxl)/self.wheel_separation
 
