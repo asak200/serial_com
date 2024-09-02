@@ -57,7 +57,7 @@ class ComNode(Node):
                     # self.get_logger().info("read")
                     # self.get_logger().info(line)
                     self.analize_msg(line)
-                    # self.ser.reset_input_buffer()
+                    self.ser.reset_input_buffer()
 
         except KeyboardInterrupt:
             print('close serial')
