@@ -54,7 +54,7 @@ class ComNode(Node):
                 if self.ser.in_waiting > 0: # to receive 
                     # self.get_logger().info("if")
                     line = self.ser.readline().decode('utf-8').rstrip()
-                    # self.get_logger().info("read")
+                    self.get_logger().info("read")
                     self.get_logger().info(line)   
                     self.analize_msg(line)
                     self.ser.reset_input_buffer()
@@ -78,7 +78,7 @@ class ComNode(Node):
             self.get_logger().info(f"{c}")
         else:
             self.pub.publish(msg)
-            self.get_logger().info(f"{msg.info}")
+            # self.get_logger().info(f"{msg.info}")
 
 
     def send_vel(self, req: CmdVelReq.Request, resp):
