@@ -14,6 +14,7 @@ class ComNode(Node):
         super().__init__('serial_com_node')
         self.pub = self.create_publisher(SerMsg, 'serial_read', 10)
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
+        self.sups = self.create_subscription(String, 'to_serial', self.send_serial_sub, 10)
 
         self.ser_port = f'/dev/ttyUSB0'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
@@ -45,11 +46,11 @@ class ComNode(Node):
             self.pub_enc.publish(msg)
 
     def listen(self):
-        self.get_logger().info("listen")
+        self.get_logger().info("liskkkten")
         try:
             self.get_logger().info("try")
             while True:
-                time.sleep(0.001)
+                time.sleep(0.01)
                 # self.get_logger().info("while")
                 if self.ser.in_waiting > 0: # to receive 
                     # self.get_logger().info("if")
@@ -75,7 +76,7 @@ class ComNode(Node):
         if order == 'enc':
             self.pub_enc.publish(msg)
             c = content.split("  ")
-            self.get_logger().info(f"{c}")
+            # self.get_logger().info(f"{c}")
         else:
             self.pub.publish(msg)
             # self.get_logger().info(f"{msg.info}")
@@ -87,6 +88,11 @@ class ComNode(Node):
         self.ser.write(msg.encode('utf-8'))
         # self.get_logger().info(f"sending: {msg[3:-1]}")
         return resp
+    
+    def send_serial_sub(self, msg: String):
+        a = msg.data + '\n'
+        # print(a)
+        self.ser.write(a.encode('utf-8'))
 
 
 def main(args=None):
