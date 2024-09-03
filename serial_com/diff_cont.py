@@ -66,9 +66,9 @@ class DiffContNode(Node):
         #         self.vel_cli.call_async(self.req)
 
     def get_enc(self, enc_info: SerMsg):
-        if not '  ' in enc_info.info or len(enc_info.info.split('  ')) != 6:
+        if not ' ' in enc_info.info or len(enc_info.info.split(' ')) != 6:
             return
-        dxl, dxr, vl, vr, sl, sr = enc_info.info.split('  ')
+        dxl, dxr, vl, vr, sl, sr = enc_info.info.split(' ')
         if dxl == '' or dxr == '' or vl == '' or vr == '':
             return
         tf = TransformStamped()
