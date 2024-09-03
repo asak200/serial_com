@@ -18,43 +18,28 @@ class ComNode(Node):
 
         self.ser_port = f'/dev/ttyUSB0'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
-        # for i in range(10):
-        #     try:
-        #         self.ser_port = f'/dev/ttyUSB{i}'
-        #         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
-        #         break
-        #     except serial.serialutil.SerialException:
-        #         pass
 
         time.sleep(2.)
         self.ser.reset_input_buffer()
         self.get_logger().info(f"Serial com established to {self.ser_port}")
 
         self.vel_srv = self.create_service(CmdVelReq, 'send_vel_srv', self.send_vel)
-        self.el = '0'
-        self.er = '0'
 
         self.serial_thread = threading.Thread(target=self.listen)
         self.serial_thread.daemon = True
         self.serial_thread.start()
 
-        # initialize
-        msg = SerMsg()
-        msg.head = 'enc'
-        msg.info = '0  0  0  0  0'
-        for _ in range(2000):
-            self.pub_enc.publish(msg)
 
     def listen(self):
-        self.get_logger().info("liskkkten")
+        self.get_logger().info("listen")
         try:
             self.get_logger().info("try")
             while True:
-                # time.sleep(0.01)
+                time.sleep(0.004)
                 # self.get_logger().info("while")
                 if self.ser.in_waiting > 0: # to receive 
                     # self.get_logger().info("if")
-                    line = self.ser.readline().decode('utf-8').rstrip()
+                    line = self.ser.readline().decode('utf-8', errors='ignore').rstrip()
                     # self.get_logger().info("read")
                     self.get_logger().info(line)
                     self.analize_msg(line)
@@ -75,7 +60,7 @@ class ComNode(Node):
         msg.info = content
         if order == 'enc':
             self.pub_enc.publish(msg)
-            c = content.split("  ")
+            c = content.split(" ")
             # self.get_logger().info(f"{c}")
         else:
             self.pub.publish(msg)
