@@ -35,7 +35,7 @@ class ComNode(Node):
         try:
             self.get_logger().info("try")
             while True:
-                time.sleep(0.005)
+                time.sleep(0.001)
                 # self.get_logger().info("while")
                 if self.ser.in_waiting > 0: # to receive 
                     # self.get_logger().info("if")
