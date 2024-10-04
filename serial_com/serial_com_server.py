@@ -16,7 +16,7 @@ class ComNode(Node):
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
         self.sups = self.create_subscription(String, 'to_serial', self.send_serial_sub, 10)
 
-        self.ser_port = f'/dev/ttyUSB0'
+        self.ser_port = f'/dev/ttyACM0'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
 
         time.sleep(2.)
@@ -35,14 +35,14 @@ class ComNode(Node):
         try:
             self.get_logger().info("try")
             while True:
-                time.sleep(0.001)
+                time.sleep(0.01)
                 # self.get_logger().info("while")
                 if self.ser.in_waiting > 0: # to receive 
                     # self.get_logger().info("if")
                     line = self.ser.readline().decode('utf-8', errors='ignore').rstrip()
                     # self.get_logger().info("read")
                     self.get_logger().info(line)
-                    self.analize_msg(line)
+                    # self.analize_msg(line)
                     # self.ser.reset_input_buffer()
 
         except KeyboardInterrupt:

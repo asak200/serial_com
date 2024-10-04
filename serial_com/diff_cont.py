@@ -30,7 +30,9 @@ class DiffContNode(Node):
 
         # self.my_timer = self.create_timer(0.01, self.update_pose)
         # self.my_timer_ = self.create_timer(0.02, self.apply_gui_vel)
-
+        # self.req.speed_request = 'or: c\n'
+        # self.vel_cli.call_async(self.req)
+        
         self.xl = 0
         self.xr = 0
         self.dxl = 0
@@ -42,33 +44,47 @@ class DiffContNode(Node):
         self.pose_ang = 0.
         self.real_vl = 0
         self.real_vr = 0
-        self.joyA = 0
-        self.joyB = 0
+
+        self.up_down = 0
 
         self.wheel_separation = 0.55
 
         self.req = CmdVelReq.Request()
-        while not self.vel_cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Service not available, waiting...')
+        # while not self.vel_cli.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().info('Service not available, waiting...')
         self.get_logger().info("Diff drive controller initialized")
 
     def joy_callback(self, msg:Joy):
         # self.prev_joyA = self.joyA
-        self.joyA = msg.buttons[0]
-        self.joyB = msg.buttons[1]
+        self.joyX = msg.buttons[2]
+        self.joyY = msg.buttons[3]
+        
+        req = CmdVelReq.Request
 
-        # if self.prev_joyA and not self.joyA:
-        #     for _ in range(50):
-        #         cmd = f'vs: 0.00 0.00\n'
-        #         req = CmdVelReq.Request
-        #         req.speed_request = cmd
-        #         self.get_logger().info(cmd)
-        #         self.vel_cli.call_async(self.req)
+        if self.joyX:
+            self.up_down = 1
+            cmd = f'ac: 1\n'
+            req.speed_request = cmd
+            self.get_logger().info(cmd)
+            self.vel_cli.call_async(self.req)
+        elif self.joyY:
+            self.up_down = 1
+            cmd = f'ac: 2\n'
+            req.speed_request = cmd
+            self.get_logger().info(cmd)
+            self.vel_cli.call_async(self.req)
+        elif self.up_down:
+            self.up_down = 0
+            for _ in range(5):
+                cmd = f'ac: 0\n'
+                req.speed_request = cmd
+                self.get_logger().info(cmd)
+                self.vel_cli.call_async(self.req)
 
     def get_enc(self, enc_info: SerMsg):
-        if not ' ' in enc_info.info or len(enc_info.info.split(' ')) != 8:
+        if not ' ' in enc_info.info or len(enc_info.info.split(' ')) != 6:
             return
-        dxl, dxr, vl, vr, sl, sr, _, _ = enc_info.info.split(' ')
+        dxl, dxr, vl, vr, sl, sr = enc_info.info.split(' ')
         if dxl == '' or dxr == '' or vl == '' or vr == '':
             return
         tf = TransformStamped()
@@ -130,7 +146,7 @@ class DiffContNode(Node):
         cmd = f'vs:{vl: 0.2f}{vr: 0.2f}\n'
         req = CmdVelReq.Request
         req.speed_request = cmd
-        # self.get_logger().info(cmd)
+        self.get_logger().info(cmd)
         self.vel_cli.call_async(self.req)
 
     def apply_constant_vel(self, msg: Twist):
@@ -165,27 +181,24 @@ class DiffContNode(Node):
     def apply_gui_vel(self):
         with open("/home/asak/dev_ws2/src/cmd.txt", 'r') as file:
             v = file.read()
-            
-        pwm_l = 120
-        pwm_r = 120
-
-        cmd = f"vs: {pwm_l} {pwm_r}"
+        
+        cmd = f"vs: 0.40 0.40"
         if v == 's':
             pwm_l = 0
             pwm_r = 0
-            cmd = "vs: 000 000"
+            cmd = "vs: 0.00 0.00"
         elif v == 'b':
             pwm_l *= -1
             pwm_r *= -1
-            cmd = f"vs:{pwm_l}{pwm_r}"
+            cmd = f"vs:-0.40-0.40"
         elif v == 'l':
             pwm_l = -120
             pwm_r = 120
-            cmd = f"vs:{pwm_l} {pwm_r}"
+            cmd = f"vs:-0.40 0.40"
         elif v == 'r':
             pwm_l = 120
             pwm_r = -120
-            cmd = f"vs: {pwm_l}{pwm_r}"
+            cmd = f"vs: 0.40-0.40"
         
         self.req.speed_request = cmd + '\n'
         self.get_logger().info(f"sendin {self.req.speed_request}")
