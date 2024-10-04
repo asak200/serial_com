@@ -16,7 +16,7 @@ class ComNode(Node):
         self.pub_enc = self.create_publisher(SerMsg, 'enc_val', 10)
         self.sups = self.create_subscription(String, 'to_serial', self.send_serial_sub, 10)
 
-        self.ser_port = f'/dev/ttyACM0'
+        self.ser_port = f'/dev/ttyUSB0'
         self.ser = serial.Serial(self.ser_port, 115200, timeout=1.0)
 
         time.sleep(2.)
